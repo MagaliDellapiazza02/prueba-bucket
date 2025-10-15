@@ -1,0 +1,35 @@
+name: Deploy to Lambda
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - backend/**
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: us-east-1
+
+    - name: Package (zip)
+      run: |
+        cd backend
+        # crea un zip con los archivos de backend en la raíz del zip
+        zip -r ../lambda.zip . -x ".git/*" ".github/*" ".venv/*" "__pycache__/*" "tests/*"
+
+    - name: Update Lambda code
+      run: |
+        aws lambda update-function-code \
+          --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
+          --zip-file fileb://lambda.zip
